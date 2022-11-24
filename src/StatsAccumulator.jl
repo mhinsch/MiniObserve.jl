@@ -94,24 +94,31 @@ function add!(acc :: MaxMinAcc{T}, v :: T) where {T}
 	acc.min = min(acc.min, v)
 end
 
+
 ### HistAcc
 
 "Track a histogram of input values. Results are returned as a `(;bins::Vector{Int})`."
 mutable struct HistAcc{T}
     bins :: Vector{Int}
     min :: T
+    max :: T
     width :: T
 end
 
 "Construct a histogram accumulator. Provide minimum value and bin size as `min` and `width`."
-HistAcc(min::T = T(0), width::T = T(1)) where {T} = HistAcc{T}([], min, width)
+HistAcc(min::T = T(0), width::T = T(1), max::T = T(0)) where {T} = 
+    HistAcc{T}(
+               max <= min ? T[] : zeros(T, find_bin(min, width, max)), 
+               min, max, width)
+
+find_bin(min, width, v) = floor(Int, (v - min) / width) + 1
 
 function add!(acc :: HistAcc{T}, v :: T) where {T}
     if v < acc.min
         return acc
     end
 
-    bin = floor(Int, (v - acc.min) / acc.width) + 1
+    bin = find_bin(acc.min, acc.width, v)
     n = length(acc.bins)
     if bin > n
         sizehint!(acc.bins, bin)
@@ -128,6 +135,7 @@ end
 results(acc::HistAcc) = (;bins = acc.bins)
 
 result_type(::Type{HistAcc}) = @NamedTuple{bins::Vector{Int}}
+
 
 # does not work with results/result_type, maybe rework as tuples?
 
