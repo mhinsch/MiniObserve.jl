@@ -30,6 +30,7 @@ end
 	@for ind in model.population begin
 	    @stat("capital", MaxMinAcc{Float64}) <| ind.capital
 		@stat("n_alone", CountAcc)           <| !has_neighbours(ind)
+        @stat("all_capital", SumAcc{Float64})  <| ind.capital
 	end
 end
 
@@ -45,6 +46,7 @@ result = observe(Data, m)
 @test result.capital.max == 2.0
 @test result.capital.min == 0.0
 @test result.n_alone.n == 1
+@test result.all_capital.n == 3.0
 
 end
 
@@ -57,10 +59,10 @@ result = observe(Data, m)
 io = IOBuffer()
 
 print_header(io, Data)
-@test String(take!(io)) == "time\tN\tcapital_max\tcapital_min\tn_alone_n\n"
+@test String(take!(io)) == "time\tN\tcapital_max\tcapital_min\tn_alone_n\tall_capital_n\n"
 
 log_results(io, result)
-@test String(take!(io)) == "10.0\t3\t2.0\t0.0\t1\n"
+@test String(take!(io)) == "10.0\t3\t2.0\t0.0\t1\t3.0\n"
 
 end
 

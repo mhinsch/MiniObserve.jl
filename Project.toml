@@ -1,0 +1,8 @@
+name = "MiniObserve"
+uuid = "fcdc8f60-d396-456b-adf3-1a67625f7fcb"
+authors = ["Martin Hinsch <hinsch.martin@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
