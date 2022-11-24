@@ -96,7 +96,7 @@ end
 
 ### HistAcc
 
-"Track a histogram of input values. Results are returned as a `Vector{Int}`."
+"Track a histogram of input values. Results are returned as a `(;bins::Vector{Int})`."
 mutable struct HistAcc{T}
     bins :: Vector{Int}
     min :: T
