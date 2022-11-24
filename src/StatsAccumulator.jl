@@ -83,17 +83,25 @@ end
 mutable struct HistAcc{T}
     bins :: Vector{Int}
     min :: T
+    max :: T
     width :: T
 end
 
-HistAcc(min::T = T(0), width::T = T(1)) where {T} = HistAcc{T}([], min, width)
+HistAcc(min::T = T(0), width::T = T(1), max::T = T(0)) where {T} = 
+    HistAcc{T}(
+               max <= min ? T[] : zeros(T, find_bin(min, width, max)), 
+               min, max, width)
+
+
+find_bin(min, width, v) = floor(Int, (v - min) / width) + 1
+
 
 function add!(acc :: HistAcc{T}, v :: T) where {T}
-    if v < acc.min
+    if v < acc.min || (acc.max > acc.min && v > acc.max)
         return acc
     end
 
-    bin = floor(Int, (v - acc.min) / acc.width) + 1
+    bin = find_bin(acc.min, acc.width, v)
     n = length(acc.bins)
     if bin > n
         sizehint!(acc.bins, bin)
