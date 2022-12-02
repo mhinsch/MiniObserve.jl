@@ -137,6 +137,24 @@ function joined_named_tuple_T(types...)
 end
 
 
+# code to declare stat property in stats struct
+# creates a single named tuple type from all result types of all stats
+function data_struct_elements(statname, stattypes)
+    sname = Symbol(statname)
+    prop_code = :($sname :: joined_named_tuple_T())
+    for t in stattypes
+        # not a constructor call
+        if ! @capture(t, typ_(args__))
+            typ = t
+        end
+
+        push!(prop_code.args[2].args, :($(esc(:result_type))($(esc(typ)))))
+    end
+
+    prop_code
+end
+
+
 # process an aggregate stats declaration (@for)
 function process_aggregate(var, collection, decls)
 	stat_type_code = []
@@ -149,33 +167,25 @@ function process_aggregate(var, collection, decls)
 	lines = rmlines(decls).args
 
 	for (i, line) in enumerate(lines)
+        condition = nothing
+
 		@capture(line, @stat(statname_String, stattypes__) <| expr_) ||
-			error("expected:@stat(<NAME>, <STAT> {, <STAT>}) <| <EXPR>")
+            @capture(line, @if condition_ @stat(statname_String, stattypes__) <| expr_) ||
+            error("expected: [@if cond] @stat(<NAME>, <STAT> {, <STAT>}) <| <EXPR>")
 
-		# code to declare stat property in stats struct
-		# creates a single named tuple type from all result types of all stats
-		sname = Symbol(statname)
-		prop_code = :($sname :: joined_named_tuple_T())
-		for t in stattypes
-            # not a constructor call
-            if ! @capture(t, typ_(args__))
-                typ = t
-            end
-
-			push!(prop_code.args[2].args, :($(esc(:result_type))($(esc(typ)))))
-		end
-
+        # data struct
+        prop_code = data_struct_elements(statname, stattypes)
 		push!(stat_type_code, prop_code)
 
 		# code to store result of user code (to be fed into stats objects)
 		# (inside loop)
-		tmp_name = gensym("tmp")
+		tmp_name = gensym("tmp_" * statname)
 		push!(loop_code, :($tmp_name = $(esc(expr))))
 
 		# expression that merges all results for this stat into single named tuple
 		res_expr = length(stattypes) > 1 ? :(merge()) : :(identity())
 
-		# all stats for this specific term
+		# all stats for this specific @stat term
 		for (j, stattype) in enumerate(stattypes)
 			# declaration of accumulator
 			vname = gensym("stat")
@@ -188,8 +198,13 @@ function process_aggregate(var, collection, decls)
                 push!(body_code, :($(esc(vname)) = $(esc(stattype))()))
             end
 
+            add = :($(esc(:add!))($(esc(vname)), $tmp_name))
 			# add value to accumulator
-			push!(loop_code, :($(esc(:add!))($(esc(vname)), $tmp_name)))
+            if condition == nothing
+                push!(loop_code, add)
+            else
+                push!(loop_code, Expr(:if, esc(condition), add))
+            end
 			# add to named tuple argument of constructor call
 			push!(res_expr.args, :(to_named_tuple($(esc(:results))($(esc(vname))))))
 		end
