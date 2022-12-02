@@ -169,9 +169,16 @@ function process_aggregate(var, collection, decls)
 	for (i, line) in enumerate(lines)
         condition = nothing
 
-		@capture(line, @stat(statname_String, stattypes__) <| expr_) ||
-            @capture(line, @if condition_ @stat(statname_String, stattypes__) <| expr_) ||
-            error("expected: [@if cond] @stat(<NAME>, <STAT> {, <STAT>}) <| <EXPR>")
+        # if one of the built-in expressions is called check for syntax and capture elements
+        if line.head == :macrocall && (line.args[1] == Symbol("@stat") || line.args[1] == Symbol("@if"))
+            @capture(line, @stat(statname_String, stattypes__) <| expr_) ||
+                @capture(line, @if condition_ @stat(statname_String, stattypes__) <| expr_) ||
+                error("expected: [@if cond] @stat(<NAME>, <STAT> {, <STAT>}) <| <EXPR>")
+        # otherwise copy code over to loop verbatim
+        else
+            push!(loop_code, esc(line))
+            continue
+        end
 
         # data struct
         prop_code = data_struct_elements(statname, stattypes)
