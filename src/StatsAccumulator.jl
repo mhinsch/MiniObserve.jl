@@ -103,19 +103,32 @@ mutable struct HistAcc{T}
     min :: T
     max :: T
     width :: T
+    keep_min :: Bool
+    keep_max :: Bool
 end
 
 "Construct a histogram accumulator. Provide minimum value and bin size as `min` and `width`."
-HistAcc(min::T = T(0), width::T = T(1), max::T = T(0)) where {T} = 
+HistAcc(min::T = T(0), width::T = T(1), max::T = min; 
+        count_below_min = false, count_above_max = false) where {T} = 
     HistAcc{T}(
                max <= min ? T[] : zeros(T, find_bin(min, width, max)), 
-               min, max, width)
+               min, max, width, count_below_min, count_above_max)
 
 find_bin(min, width, v) = floor(Int, (v - min) / width) + 1
 
 function add!(acc :: HistAcc{T}, v :: T) where {T}
     if v < acc.min
-        return acc
+        # don't count values that are too small
+        if ! acc.keep_min
+            return acc
+        end
+        v = acc.min
+    elseif acc.min < acc.max < v
+        # don't count values that are too big
+        if ! acc.keep_max
+            return acc
+        end
+        v = acc.max
     end
 
     bin = find_bin(acc.min, acc.width, v)
