@@ -3,6 +3,7 @@ module Observation
 export print_header, @observe, log_results
 
 using MacroTools
+using MacroTools: prewalk
 
 "obtain a named tuple type with the same field types and names as `struct_T`"
 tuple_type(struct_T) = NamedTuple{fieldnames(struct_T), Tuple{fieldtypes(struct_T)...}}
@@ -155,6 +156,9 @@ function data_struct_elements(statname, stattypes)
 end
 
 
+error_stat_syntax() = error("expected: [@if cond] @stat(<NAME>, <STAT> {, <STAT>}) <| <EXPR>")
+
+
 # process an aggregate stats declaration (@for)
 function process_aggregate(var, collection, decls)
 	stat_type_code = []
@@ -169,13 +173,18 @@ function process_aggregate(var, collection, decls)
 	for (i, line) in enumerate(lines)
         condition = nothing
 
-        # if one of the built-in expressions is called check for syntax and capture elements
-        if line.head == :macrocall && (line.args[1] == Symbol("@stat") || line.args[1] == Symbol("@if"))
-            @capture(line, @stat(statname_String, stattypes__) <| expr_) ||
-                @capture(line, @if condition_ @stat(statname_String, stattypes__) <| expr_) ||
-                error("expected: [@if cond] @stat(<NAME>, <STAT> {, <STAT>}) <| <EXPR>")
-        # otherwise copy code over to loop verbatim
+        # built-in expression, capture variables
+        if @capture(line, @stat(statname_String, stattypes__) <| expr_) ||
+                @capture(line, @if condition_ @stat(statname_String, stattypes__) <| expr_)
         else
+            # check for wrong @for/@if expressions
+            prewalk(line) do x 
+                if @capture(x, @stat(args__)) || @capture(x, @if(args__))
+                        error_stat_syntax()
+                    end
+                    x
+                end
+            # otherwise copy code over to loop verbatim
             push!(loop_code, esc(line))
             continue
         end
