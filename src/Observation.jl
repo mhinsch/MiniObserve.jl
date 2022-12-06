@@ -296,7 +296,7 @@ macro observe(tname, model, args_and_decl...)
 		:(function $(esc(:observe))(::$(esc(:Type)){$(esc(tname))}, $(esc(model))); end)
 	else
 		:(function $(esc(:observe))(::$(esc(:Type)){$(esc(tname))}, $(esc(model)), 
-			$(esc(args_and_decl[1:end-1]...))); end)
+			$(esc.(args_and_decl[1:end-1])...)); end)
 	end
 
 	ana_body = ana_func.args[2].args
