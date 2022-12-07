@@ -317,11 +317,6 @@ macro observe(tname, model, args_and_decl...)
 	# * additional arguments for the stats object constructor call
 	lines = rmlines(decl).args
 	for (i, line) in enumerate(lines)
-		if typeof(line) != Expr || line.head != :macrocall
-			dump(line)
-			error(syntax)
-		end
-		
 		# single stat
 		if line.args[1] == Symbol("@record")
 			typ = nothing
@@ -338,8 +333,11 @@ macro observe(tname, model, args_and_decl...)
 			stats_type_c, ana_body_c, stats_constr_c = 
 				process_aggregate(var, expr, block)
 
+        # everything else is copied verbatim
 		else
-			error(syntax)
+            stats_type_c = []
+            stats_constr_c = []
+            ana_body_c = [esc(line)]
 		end
 
 		# add code to respective bits
