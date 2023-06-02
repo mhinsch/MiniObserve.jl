@@ -1,3 +1,8 @@
+"""
+
+This module implements the observation logic itself.
+
+"""
 module Observation
 
 export print_header, @observe, log_results

@@ -2,14 +2,28 @@ module StatsAccumulator
 
 export CountAcc, MeanVarAcc, add!, results, result_type, MaxMinAcc, HistAcc, SumAcc
 
+using DocStringExtensions
 
 
 # per default the struct itself is assumed to contain the results (see e.g. min/max)
 
-"type of results of accumulator `T`, overload as needed"
+"""
+$(SIGNATURES)
+
+Returns the type of the results of accumulator `T`. 
+
+Per default the accumulator type itself is assumed to form the result. Overload for custom result types.
+"""
 result_type(::Type{T}) where {T} = T
 
-"results, overload as needed"
+"""
+$(SIGNATURES)
+
+Return the results of an accumulator.
+
+Per default it is assumed that the accumulator type contains the result. Overload for custom result types. 
+
+"""
 results(t :: T) where {T} = t
 
 
@@ -117,6 +131,8 @@ HistAcc(min::T = T(0), width::T = T(1), max::T = min;
 find_bin(min, width, v) = floor(Int, (v - min) / width) + 1
 
 function add!(acc :: HistAcc{T}, v :: T) where {T}
+	@assert !isnan(v)
+	
     if v < acc.min
         # don't count values that are too small
         if ! acc.keep_min
