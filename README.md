@@ -1,4 +1,9 @@
+
+
 # MiniObserve.jl
+
+[![CI](https://github.com/mhinsch/MiniObserve.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/mhinsch/MiniObserve.jl/actions/workflows/ci.yml) [![](https://img.shields.io/badge/docs-stable-blue.svg)](http://mhinsch.github.io/MiniObserve.jl/dev)
+
 Minimalist (and minimally intrusive) macro set for extracting information from complex objects.
 
 Given a complex object `MiniObserve` lets you generate functions to extract and print information from that object by means of a simple declarative interface. It can for example be used to extract information from a simulation model at each time step and write that information to a file.
