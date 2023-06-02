@@ -15,3 +15,7 @@ makedocs(sitename="MiniObserve.jl",
 			"Readme" => "README.md",
 			"Observation" => "obs.md",
 			"Stats Accumulators" => "stats.md"])
+			
+deploydocs(
+    repo = "github.com/mhinsch/MiniObserve.jl.git",
+    )
