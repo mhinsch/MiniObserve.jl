@@ -2,7 +2,7 @@ push!(LOAD_PATH, "../src")
 
 using Documenter, MiniObserve
 
-cp("../README.md", "src/README.md")
+#cp("../README.md", "src/README.md")
 
 makedocs(sitename="MiniObserve.jl",
 	format   = Documenter.HTML(
