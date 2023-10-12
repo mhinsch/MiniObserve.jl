@@ -95,3 +95,20 @@ result = observe(Data2, m, 42)
 
 end
 
+const run_count = [0]
+
+@observe Data3 model begin
+	@for ind in model.population begin
+	    @if ind.capital > 0 @stat("count", CountAcc) <| (run_count[1]+=1; ind.n==10)
+	end
+end
+
+
+@testset "if" begin
+	m = Model()
+	result = observe(Data3, m)
+	
+	@test run_count[1] == 2
+	@test result.count.n == 1
+end
+
