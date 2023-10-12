@@ -1,7 +1,7 @@
 name = "MiniObserve"
 uuid = "fcdc8f60-d396-456b-adf3-1a67625f7fcb"
 authors = ["Martin Hinsch <hinsch.martin@gmail.com>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
