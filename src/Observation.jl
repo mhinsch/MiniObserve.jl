@@ -104,6 +104,11 @@ end
 end
 
 
+function add_result_to_accs(result, accs...)
+	foreach(a -> add!(a, result))
+end
+
+
 # process a single stats declaration (@record)	
 function process_single(name, typ, expr)
 	# no type specified, default to float
@@ -203,9 +208,10 @@ function process_aggregate(var, collection, decls)
 		
 		# code to store result of user code (to be fed into stats objects)
 		# (inside loop)
-		tmp_name = gensym("tmp_" * statname)
-		push!(this_stat_code, :($tmp_name = $(esc(expr))))
-
+		#tmp_name = gensym("tmp_" * statname)
+		#push!(this_stat_code, :($tmp_name = $(esc(expr))))
+		adder_code = :(add_result_to_accs($(esc(expr))))
+		
 		# expression that merges all results for this stat into single named tuple
 		res_expr = length(stattypes) > 1 ? :(merge()) : :(identity())
 
@@ -221,13 +227,15 @@ function process_aggregate(var, collection, decls)
                 # create constructor call
                 push!(body_code, :($(esc(vname)) = $(esc(stattype))()))
             end
-
-            add = :($(esc(:add!))($(esc(vname)), $tmp_name))
+            
+            push!(adder_code.args, :($(esc(vname))))
+            #add = :($(esc(:add!))($(esc(vname)), $tmp_name))
 			# add value to accumulator
-            push!(this_stat_code, add)
+            #push!(this_stat_code, add)
 			# add to named tuple argument of constructor call
 			push!(res_expr.args, :(to_named_tuple($(esc(:results))($(esc(vname))))))
 		end
+		push!(this_stat_code, adder_code)
         if condition == nothing
             append!(loop_code, this_stat_code)
         else
