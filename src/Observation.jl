@@ -104,8 +104,14 @@ end
 end
 
 
+function add_result_to_accs(result, acc)
+	add!(acc, result)
+	nothing
+end
+
 function add_result_to_accs(result, accs...)
 	foreach(a -> add!(a, result))
+	nothing
 end
 
 
@@ -256,14 +262,14 @@ end
 
 """ 
 
-@observe(statstype, model [, user_arg1...], declarations)
+@observe(statstype, user_arg1 [, user_arg2...], declarations)
 
-Generate a full analysis suite for a model.
+Generate a full analysis and logging suite for a set of data structures.
 
 Given a declaration
 
 ```Julia
-@observe Data model user1 user2 begin
+@observe Data model stat1 stat2 begin
 	@record "time"      model.time
 	@record "N"     Int length(model.population)
 
@@ -272,8 +278,8 @@ Given a declaration
 		@stat("n_alone", CountAcc)           <| has_neighbours(ind)
 	end
 
-	@record u1			user1
-	@record u2			user1 * user2
+	@record s1			stat1
+	@record s2			stat1 * stat2
 end
 ```
 
@@ -285,21 +291,21 @@ struct Data
 	N :: Int
 	capital :: @NamedTuple{max :: Float64, min :: Float64, mean :: Float64, var :: Float64}
 	n_alone :: @NamedTuple{N :: Int}
-	u1 :: Float64
-	u2 :: Float64
+	s1 :: Float64
+	s2 :: Float64
 end
 ```
 
 The macro will also create a method for `observe(::Type{Data), model...)` that will perform the required calculations and returns a `Data` object. Use `print_header` to print a header for the generated type to an output and `log_results` to print the content of a data object.
 """
-macro observe(tname, model, args_and_decl...)
-	observe_syntax = "@observe <type name> <model> [<user args> ...] <declaration block>"
+macro observe(tname, args_and_decl...)
+	observe_syntax = "@observe <type name> <user arg> [<user args> ...] <declaration block>"
 
 	if typeof(tname) != Symbol
 		error("usage: $observe_syntax")
 	end
 
-	if length(args_and_decl) < 1
+	if length(args_and_decl) < 2
 		error("usage: $observe_syntax")
 	end
 
@@ -309,12 +315,8 @@ macro observe(tname, model, args_and_decl...)
 		error("usage: $observe_syntax")
 	end
 
-	ana_func = if length(args_and_decl) == 1
-		:(function $(esc(:observe))(::$(esc(:Type)){$(esc(tname))}, $(esc(model))); end)
-	else
-		:(function $(esc(:observe))(::$(esc(:Type)){$(esc(tname))}, $(esc(model)), 
+	ana_func = :(function $(esc(:observe))(::$(esc(:Type)){$(esc(tname))}, 
 			$(esc.(args_and_decl[1:end-1])...)); end)
-	end
 
 	ana_body = ana_func.args[2].args
 
