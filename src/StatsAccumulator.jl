@@ -1,30 +1,10 @@
 module StatsAccumulator
 
-export CountAcc, MeanVarAcc, add!, results, result_type, MaxMinAcc, HistAcc, SumAcc
+export CountAcc, MeanVarAcc, MaxMinAcc, HistAcc, SumAcc
 
 using DocStringExtensions
 
-
-# per default the struct itself is assumed to contain the results (see e.g. min/max)
-
-"""
-$(SIGNATURES)
-
-Returns the type of the results of accumulator `T`. 
-
-Per default the accumulator type itself is assumed to form the result. Overload for custom result types.
-"""
-result_type(::Type{T}) where {T} = T
-
-"""
-$(SIGNATURES)
-
-Return the results of an accumulator.
-
-Per default it is assumed that the accumulator type contains the result. Overload for custom result types. 
-
-"""
-results(t :: T) where {T} = t
+import ..StatsAccumulatorBase as SAB
 
 
 ### CountAcc
@@ -36,7 +16,7 @@ end
 
 CountAcc() = CountAcc(0)
 
-add!(acc :: CountAcc, cond) = cond ? acc.n += 1 : 0
+SAB.add!(acc :: CountAcc, cond) = cond ? acc.n += 1 : 0
 
 
 ### SumAcc
@@ -48,7 +28,7 @@ end
 
 SumAcc{T}() where {T} = SumAcc(T(0))
 
-add!(acc :: SumAcc, x) = acc.n += x
+SAB.add!(acc :: SumAcc, x) = acc.n += x
 
 
 ### MeanVar
@@ -62,16 +42,16 @@ end
 
 MeanVarAcc{T}() where {T} = MeanVarAcc(T(0), T(0), 0)
 
-function add!(acc :: MeanVarAcc{T}, v :: T) where {T}
+function SAB.add!(acc :: MeanVarAcc{T}, v :: T) where {T}
 	acc.sum += v
 	acc.sum_sq += v*v
 	acc.n += 1
 end
 
-results(acc :: MeanVarAcc{T}) where {T} = 
+SAB.results(acc :: MeanVarAcc{T}) where {T} = 
 	(mean = acc.sum / acc.n, var = (acc.sum_sq - acc.sum*acc.sum/acc.n) / (acc.n - 1))
 
-result_type(::Type{MeanVarAcc{T}}) where {T} = @NamedTuple{mean::T, var::T}
+SAB.result_type(::Type{MeanVarAcc{T}}) where {T} = @NamedTuple{mean::T, var::T}
 	
 
 
@@ -83,7 +63,7 @@ result_type(::Type{MeanVarAcc{T}}) where {T} = @NamedTuple{mean::T, var::T}
 #
 #MeanVarAcc2{T}() where T = MeanVarAcc2(T(0), T(0), 0)
 #
-#function add!(acc :: MeanVarAcc2{T}, v :: T) where T
+#function SAB.add!(acc :: MeanVarAcc2{T}, v :: T) where T
 #	delta = v - acc.m
 #	acc.n += 1
 #	delta_n = delta / acc.n
@@ -103,7 +83,7 @@ end
 
 MaxMinAcc{T}() where {T} = MaxMinAcc(typemin(T), typemax(T))
 
-function add!(acc :: MaxMinAcc{T}, v :: T) where {T}
+function SAB.add!(acc :: MaxMinAcc{T}, v :: T) where {T}
 	acc.max = max(acc.max, v)
 	acc.min = min(acc.min, v)
 end
@@ -142,7 +122,7 @@ HistAcc(min::T = T(0), width::T = T(1), max::T = min;
 
 find_bin(min, width, v) = floor(Int, (v - min) / width) + 1
 
-function add!(acc :: HistAcc{T}, v :: T) where {T}
+function SAB.add!(acc :: HistAcc{T}, v :: T) where {T}
 	@assert !isnan(v)
 	
     if v < acc.min
@@ -173,22 +153,21 @@ function add!(acc :: HistAcc{T}, v :: T) where {T}
     acc
 end
 
-results(acc::HistAcc) = (;bins = acc.bins)
+SAB.results(acc::HistAcc) = (;bins = acc.bins)
 
-result_type(::Type{HistAcc}) = @NamedTuple{bins::Vector{Int}}
+SAB.result_type(::Type{HistAcc}) = @NamedTuple{bins::Vector{Int}}
 
 
 # does not work with results/result_type, maybe rework as tuples?
-
 #struct AccList
 #	list :: Vector{Any}
 #end
 #
 #AccList() = AccList([])
 #
-#function add!(al :: AccList, v :: T) where {T}
+#function SAB.add!(al :: AccList, v :: T) where {T}
 #	for a in al.list
-#		add!(a, v)
+#		SAB.add!(a, v)
 #	end
 #end
 

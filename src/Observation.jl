@@ -7,6 +7,8 @@ module Observation
 
 export print_header, @observe, log_results
 
+using ..StatsAccumulatorBase: add! 
+
 using MacroTools
 using MacroTools: prewalk
 
@@ -104,13 +106,13 @@ end
 end
 
 
-function add_result_to_accs(result, acc)
+@inline function add_result_to_accs!(result, acc)
 	add!(acc, result)
 	nothing
 end
 
-function add_result_to_accs(result, accs...)
-	foreach(a -> add!(a, result))
+@inline function add_result_to_accs!(result, accs...)
+	foreach(a -> add!(a, result), accs)
 	nothing
 end
 
@@ -216,7 +218,7 @@ function process_aggregate(var, collection, decls)
 		# (inside loop)
 		#tmp_name = gensym("tmp_" * statname)
 		#push!(this_stat_code, :($tmp_name = $(esc(expr))))
-		adder_code = :(add_result_to_accs($(esc(expr))))
+		adder_code = :(add_result_to_accs!($(esc(expr))))
 		
 		# expression that merges all results for this stat into single named tuple
 		res_expr = length(stattypes) > 1 ? :(merge()) : :(identity())
