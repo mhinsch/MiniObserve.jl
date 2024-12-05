@@ -10,7 +10,7 @@ makedocs(sitename="MiniObserve.jl",
 	    warn_outdated = true,
 	    collapselevel = 1
 	    ),
-	modules = [Observation, StatsAccumulator],
+	modules = [Observation, StatsAccumulatorBase, StatsAccumulator],
 	pages=["Home" => "index.md",
 			"Readme" => "README.md",
 			"Observation" => "obs.md",

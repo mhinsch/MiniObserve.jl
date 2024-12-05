@@ -123,7 +123,11 @@ end
 
 Generate a full analysis and logging suite for a set of data structures.
 
-Given a declaration
+Observe expects a (new) type name, a number of user arguments and a block of declarations. It will generate a function `observe` that takes the user arguments and returns an instance of the data type. The declaration block will be copied verbatim to the body of the `observe` function, but all occurences of the "pseudo-macros" `@record` and `@stat` will be replaced with corresponding analysis code. 
+
+The newly defined result data type will contain properties for all calculated results.
+
+So, given a declaration
 
 ```Julia
 @observe Data model stat1 stat2 begin
@@ -153,7 +157,9 @@ struct Data
 end
 ```
 
-The macro will also create a method for `observe(::Type{Data), model...)` that will perform the required calculations and returns a `Data` object. Use `print_header` to print a header for the generated type to an output and `log_results` to print the content of a data object.
+The macro will also create a method `observe(::Type{Data), model, stat1, stat2)` that will perform the required calculations and returns a `Data` object. 
+
+Use `print_header` to print a header for the generated type to an output and `log_results` to print the content of a data object.
 """
 macro observe(tname, args_and_decl...)
 	observe_syntax = "@observe <type name> <user arg> [<user args> ...] <declaration block>"
