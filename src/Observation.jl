@@ -125,11 +125,11 @@ function process_single(name, typ, expr)
 	end
 
 	tmp_name = gensym("tmp")
-	:($tmp_name = $(esc(expr)))
+	:($tmp_name = $expr)
 
-	[:($name :: $(esc(typ)))],	# type
-		[:($tmp_name = $(esc(expr)))],	# body
-		[:($tmp_name)]					# constructor
+	:($name :: $(esc(typ))),	# type
+		:($tmp_name = $expr),	# body
+		:($tmp_name)					# result constructor
 end
 
 # it would be much nicer to use a generated function for this, but
@@ -177,52 +177,30 @@ end
 error_stat_syntax() = error("expected: [@if cond] @stat(<NAME>, <STAT> {, <STAT>}) <| <EXPR>")
 
 
-# process an aggregate stats declaration (@for)
-function process_aggregate(var, collection, decls)
-	stat_type_code = []
-	body_code = []
-	res_code = []
 
-	decl_code = []
-	loop_code = []
+function process_expression!(ex, stats_type, stats_results, acc_temp_vars)
+    # local declaration of accumulator objects, goes to beginning of function
+	temp_vars_code = []
+		
+	typ = :Float64
+	
+	if @capture(ex, @record(name_String, expr_)) || @capture(ex, @record(name_String, typ_, expr_)) 
+		stats_type_code, ana_body_code, stats_results_code = process_single(Symbol(name), typ, expr)
+		
+	#elseif ex.args[1] == Symbol("@record") 
+	#	error("expecting: @record <NAME> [<TYPE>] <EXPR>")
 
-	lines = rmlines(decls).args
-
-	for (i, line) in enumerate(lines)
-        condition = nothing
-
-        # built-in expression, capture variables
-        if @capture(line, @stat(statname_String, stattypes__) <| expr_) ||
-                @capture(line, @if condition_ @stat(statname_String, stattypes__) <| expr_)
-        else
-            # check for wrong @for/@if expressions
-            prewalk(line) do x 
-                if @capture(x, @stat(args__)) || @capture(x, @if(args__))
-                        error_stat_syntax()
-                    end
-                    x
-                end
-            # otherwise copy code over to loop verbatim
-            push!(loop_code, esc(line))
-            continue
-        end
-
+	elseif @capture(ex, @stat(statname_String, stattypes__) <| expr_) 
         # data struct
-        prop_code = data_struct_elements(statname, stattypes)
-		push!(stat_type_code, prop_code)
+        stats_type_code = data_struct_elements(statname, stattypes)
+        
+		# adding data to accumulators, replaces macro in place
+		ana_body_code = :(MiniObserve.Observation.add_result_to_accs!($expr))
 		
-		# code for this @stat line
-		this_stat_code = []
+		# expression that merges all results for this stat into single named tuple,
+		# part of function return expression
+		stats_results_code = length(stattypes) > 1 ? :(merge()) : :(identity())
 		
-		# code to store result of user code (to be fed into stats objects)
-		# (inside loop)
-		#tmp_name = gensym("tmp_" * statname)
-		#push!(this_stat_code, :($tmp_name = $(esc(expr))))
-		adder_code = :(add_result_to_accs!($(esc(expr))))
-		
-		# expression that merges all results for this stat into single named tuple
-		res_expr = length(stattypes) > 1 ? :(merge()) : :(identity())
-
 		# all stats for this specific @stat term
 		for (j, stattype) in enumerate(stattypes)
 			# declaration of accumulator
@@ -230,35 +208,27 @@ function process_aggregate(var, collection, decls)
             # goes into main body (outside of loop)
             if @capture(stattype, typ_(args__))
                 # paste in constructor expression
-                push!(body_code, :($(esc(vname)) = $(esc(stattype))))
+                push!(temp_vars_code, :($vname = $stattype))
             else
                 # create constructor call
-                push!(body_code, :($(esc(vname)) = $(esc(stattype))()))
+                push!(temp_vars_code, :($vname = $stattype()))
             end
             
-            push!(adder_code.args, :($(esc(vname))))
-            #add = :($(esc(:add!))($(esc(vname)), $tmp_name))
-			# add value to accumulator
-            #push!(this_stat_code, add)
+            # add accumulater to add call
+            push!(ana_body_code.args, :($vname))
 			# add to named tuple argument of constructor call
-			push!(res_expr.args, :(to_named_tuple($(esc(:results))($(esc(vname))))))
+			push!(stats_results_code.args, :(MiniObserve.Observation.to_named_tuple(results($vname))))
 		end
-		push!(this_stat_code, adder_code)
-        if condition == nothing
-            append!(loop_code, this_stat_code)
-        else
-            push!(loop_code, Expr(:if, esc(condition), Expr(:block, this_stat_code...)))
-        end
-		
-		# another argument for the main constructor call
-		push!(res_code, res_expr)
-
+    # everything else is copied verbatim
+	else
+		return ex
 	end
 
-	# add the loop to the main body
-	push!(body_code, :(for $(esc(var)) in $(esc(collection)); $(loop_code...); end))
-
-	stat_type_code, body_code, res_code
+	# add code to respective bits
+	push!(stats_type.args[3].args, stats_type_code)
+	append!(acc_temp_vars, temp_vars_code)
+	push!(stats_results.args, stats_results_code)
+	ana_body_code
 end
 
 
@@ -317,26 +287,40 @@ macro observe(tname, args_and_decl...)
 		error("usage: $observe_syntax")
 	end
 
-	ana_func = :(function $(esc(:observe))(::$(esc(:Type)){$(esc(tname))}, 
-			$(esc.(args_and_decl[1:end-1])...)); end)
+	stats_type = :(struct $(esc(tname)); end)
+	
+	ana_func = :(function observe(::$(:Type){$(tname)}, 
+			$(args_and_decl[1:end-1]...)) end)
 
 	ana_body = ana_func.args[2].args
 
-	stats_type = :(struct $(esc(tname)); end)
-
-	stats_constr = :($(esc(tname))())
+	stats_results = :($tname())
 
 	syntax = "single or population stats declaration expected:\n" *
 		"\t@for <NAME> in <EXPR> <BLOCK> |" *
 		"\t@record <NAME> <EXPR> |" *
 		"\t@record <NAME> <TYPE> <EXPR>"
+		
+	acc_temp_vars = []
+		
+	fn_body = prewalk(ex -> process_expression!(ex, stats_type, stats_results, acc_temp_vars), decl)
 	
+	append!(ana_body, acc_temp_vars)
+	append!(ana_body, fn_body.args)
+	push!(ana_body, stats_results)
+
+	ret = Expr(:block)
+	push!(ret.args, stats_type)
+	push!(ret.args, :($(esc(ana_func))))
+
+	ret
+end
 	# go through declaration expression by expression
 	# each expression is translated into three bits of code:
 	# * additional fields for the stats type
 	# * additional code to run during the analysis
 	# * additional arguments for the stats object constructor call
-	lines = rmlines(decl).args
+	#=lines = rmlines(decl).args
 	for (i, line) in enumerate(lines)
 		# single stat
 		if line.args[1] == Symbol("@record")
@@ -366,15 +350,7 @@ macro observe(tname, args_and_decl...)
 		append!(stats_type.args[3].args, stats_type_c)
 		append!(stats_constr.args, stats_constr_c)
 	end
-
+=#
 	# add constructor call as last line of analysis function
-	push!(ana_func.args[2].args, stats_constr)
-
-	ret = Expr(:block)
-	push!(ret.args, stats_type)
-	push!(ret.args, ana_func)
-
-	ret
-end
 
 end	# module

@@ -27,7 +27,7 @@ end
 	@record "time"      model.time
 	@record "N"     Int length(model.population)
 
-	@for ind in model.population begin
+	for ind in model.population 
 	    @stat("capital", MaxMinAcc{Float64}) <| ind.capital
 		@stat("n_alone", CountAcc)           <| !has_neighbours(ind)
         @stat("all_capital", SumAcc{Float64})  <| ind.capital
@@ -71,7 +71,7 @@ end
 	@record "time"      model.time
 	@record "N"     Int length(model.population)
 
-	@for ind in model.population begin
+	for ind in model.population 
 	    @stat("capital", MaxMinAcc{Float64}) <| ind.capital
 		@stat("n_alone", CountAcc)           <| !has_neighbours(ind)
 	end
@@ -98,8 +98,10 @@ end
 const run_count = [0]
 
 @observe Data3 model begin
-	@for ind in model.population begin
-	    @if ind.capital > 0 @stat("count", CountAcc) <| (run_count[1]+=1; ind.n==10)
+	for ind in model.population 
+	    if ind.capital > 0 
+		    @stat("count", CountAcc) <| (run_count[1]+=1; ind.n==10)
+	    end
 	end
 end
 
