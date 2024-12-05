@@ -11,10 +11,11 @@ makedocs(sitename="MiniObserve.jl",
 	    collapselevel = 1
 	    ),
 	modules = [Observation, StatsAccumulatorBase, StatsAccumulator],
-	pages=["Home" => "index.md",
-			"Readme" => "README.md",
+	pages=[ "Introduction" => "README.md",
 			"Observation" => "obs.md",
-			"Stats Accumulators" => "stats.md"])
+			"StatsAccumulatorBase" => "statsbase.md",
+			"Stats Accumulators" => "stats.md",
+			"Index" => "index.md"])
 			
 deploydocs(
     repo = "github.com/mhinsch/MiniObserve.jl.git",
