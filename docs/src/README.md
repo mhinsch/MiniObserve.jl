@@ -1,7 +1,12 @@
-# MiniObserve.jl
-Minimalist (and minimally intrusive) macro set for extracting information from complex objects.
 
-Given a complex object `MiniObserve` lets you generate functions to extract and print information from that object by means of a simple declarative interface. It can for example be used to extract information from a simulation model at each time step and write that information to a file.
+
+# MiniObserve.jl
+
+[![CI](https://github.com/mhinsch/MiniObserve.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/mhinsch/MiniObserve.jl/actions/workflows/ci.yml) [![](https://img.shields.io/badge/docs-stable-blue.svg)](http://mhinsch.github.io/MiniObserve.jl/dev)
+
+Minimalist (and minimally intrusive) macro set for extracting information from complex objects, e.g. simulations.
+
+Given a number of complicated data structures `MiniObserve` lets you generate functions to extract and print information from these objects by means of a simple, near declarative interface. It can for example be used to extract information from a simulation model at each time step and write that information to a file.
 
 Using MiniObserve has several advantages over hand-written analysis code:
 * a concise declarative interface that puts all information in one place
@@ -13,7 +18,7 @@ Using MiniObserve has several advantages over hand-written analysis code:
 Most of the heavy lifting is done by the `@observe` macro:
 
 ```Julia
-@observe(statstype, model [, user_arg1...], declarations)
+@observe(statstype, arg1 [, arg2...], declarations)
 ```
 
 It will generate a custom data type to hold the desired information and an overload of the `observe` function that - given a model object - will calculate the information and return a data object.
@@ -27,7 +32,7 @@ As a simple example, let us assume we have the following `@observe` declaration:
 	@record "time"      model.time
 	@record "N"     Int length(model.population)
 
-	@for ind in model.population begin
+	for ind in model.population 
 		@stat("capital", MaxMinAcc{Float64}, MeanVarAcc{FloatT}) <| ind.capital
 		@stat("n_alone", CountAcc)           <| has_neighbours(ind)
 	end
@@ -64,11 +69,14 @@ print_header(stdout, Data)
 log_results(stdout, data)
 ```
 
-## Additional parameters
+## User code
 
-Note that `@observe` can take arbitrarily many parameters. Of these only the first two (the name of the data type and a model) and the last (the declaration itself) are required. All parameters between the second and the last are passed through unchanged and can for example be used to print additional information that is not part of the model object. 
+Fundamentally `@observe`'s operation is very simple, which makes it very flexible, but also easy to break. Any code in the declaration block will be copied into the `observe` function verbatim. The only changes `@observe` applies are:
+* At the beginning of the function a number of local variables containing the single analysis results are created.
+* Every occurence of `@record` and `@stat` is replaced with the appropriate code to store the result or add it to an accumulator object (see below), respectively.
+* At the end of the function the constructor of the analysis data type is called, collating all results into one data structure.
 
-In fact there is nothing preventing a user from using `@observe` on several complex objects at the same time by for example passing two different model objects to `observe`.
+`@observe` does not perform any further sanity checks on code outside of the "pseudo-macros", so it is the user's responsibility to make sure not to break anything (it is for example a very bad idea to add a return statement to the analysis code).
 
 ## Statistics
 
@@ -77,7 +85,7 @@ An important part of MiniObserve is the ability to analyse collections of items 
 In the example above this is used in the expression
 
 ```Julia
-	@for ind in model.population begin
+	for ind in model.population 
 		@stat("capital", MaxMinAcc{Float64}, MeanVarAcc{FloatT}) <| ind.capital
 		@stat("n_alone", CountAcc)           <| has_neighbours(ind)
 	end
