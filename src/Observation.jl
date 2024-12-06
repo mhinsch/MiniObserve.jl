@@ -12,6 +12,7 @@ using ..StatsAccumulatorBase: add!
 using MacroTools
 using MacroTools: prewalk
 
+using DocStringExtensions
 
 include("utils.jl")
 include("file_io.jl")
@@ -118,8 +119,9 @@ end
 
 
 """ 
-
+```Julia
 @observe(statstype, user_arg1 [, user_arg2...], declarations)
+```
 
 Generate a full analysis and logging suite for a set of data structures.
 

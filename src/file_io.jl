@@ -2,7 +2,11 @@
 # We could make this a generated function as well, but since the header
 # is only printed once at the beginning, the additional time needed for
 # runtime introspection is worth the reduction in complexity.
-"Print a header for an observation type `stats_t` to `output` using field separator `FS`, name separator `NS` and line separator `LS`."
+"""
+$(SIGNATURES)
+
+Print a header for an observation type `stats_t` to `output` using field separator `FS`, name separator `NS` and line separator `LS`.
+"""
 function print_header(output, stats_t; FS="\t", NS="_", LS="\n")
 	fn = fieldnames(stats_t)
 	ft = fieldtypes(stats_t)
@@ -33,7 +37,11 @@ end
 
 # It's quite possibly overkill to make this a generated function, but we
 # don't want anybody accusing us of wasting CPU cycles.
-"Print results stored in `stats` to `output` using field separator `FS` and line separator `LS`."
+"""
+$(SIGNATURES)
+
+Print results stored in `stats` to `output` using field separator `FS` and line separator `LS`.
+"""
 @generated function log_results(out, stats; FS="\t", LS="\n")
 	fn = fieldnames(stats)
 	ft = fieldtypes(stats)

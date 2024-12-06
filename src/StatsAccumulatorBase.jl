@@ -11,7 +11,15 @@ export results, result_type, add!
 
 using DocStringExtensions
 
+"""
 
+```Julia
+add!(accumulator, value)
+```
+
+
+Add a new value to a given accumulator. This function needs to be implemented for new accumulator types.
+"""
 function add! end
 
 """
