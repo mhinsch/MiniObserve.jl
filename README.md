@@ -70,9 +70,11 @@ log_results(stdout, data)
 ```
 
 Alternatively we can store our data in a Dataframe:
+
 ```Julia
 df = create_dataframe!(Data, DataFrame())
 add_to_dataframe!(df, data)
+```
 
 
 ## User code
