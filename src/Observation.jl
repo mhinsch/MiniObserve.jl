@@ -5,7 +5,7 @@ This module implements the observation logic itself.
 """
 module Observation
 
-export print_header, @observe, log_results
+export print_header, @observe, log_results, create_dataframe!, add_to_dataframe!
 
 using ..StatsAccumulatorBase: add! 
 

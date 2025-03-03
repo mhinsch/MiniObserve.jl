@@ -35,6 +35,7 @@ function header(out, stat_name, stat_names, FS, NS)
 	print(out, join((stat_name * NS) .* stat_names, FS))
 end
 
+
 # It's quite possibly overkill to make this a generated function, but we
 # don't want anybody accusing us of wasting CPU cycles.
 """
@@ -70,6 +71,68 @@ Print results stored in `stats` to `output` using field separator `FS` and line 
 	end
 
 	push!(fn_body.args, :(print(out, LS)))
+
+	fn_body
+end
+
+
+"""
+$(SIGNATURES)
+
+Add columns to a dataframe `df`, so that it can record the data from an observation type `stats_t`.
+"""
+function create_dataframe!(stats_t, df)
+	fn = fieldnames(stats_t)
+	ft = fieldtypes(stats_t)
+
+	for (name, typ) in zip(fn, ft)
+		if typ <: NamedTuple
+			# aggregate stat
+			fnnt = fieldnames(typ)
+			ftnt = fieldtypes(typ)
+			for (ntname, nttyp) in zip(fnnt, ftnt)
+				n = string(name) * "_" * string(ntname)
+				df[!, n] = Vector{nttyp}()
+			end
+		else 
+			df[!, name] = Vector{typ}()
+		end
+	end
+
+	df
+end
+
+# It's quite possibly overkill to make this a generated function, but we
+# don't want anybody accusing us of wasting CPU cycles.
+"""
+$(SIGNATURES)
+
+Store results from observation type `stats_t` in dataframe `df`. With `pre` and `post` additional data that is not contained in the stats object can be added.
+"""
+@generated function add_to_dataframe!(df, stats, pre=(), post=())
+	fn = fieldnames(stats)
+	ft = fieldtypes(stats)
+
+	fn_body = :(push!(df, ()))
+	push_args = fn_body.args[3].args
+	push!(push_args, :(pre...))
+
+	# all fields of stats
+	for (name, typ) in zip(fn, ft)
+		# aggregate stats
+		if typ <: NamedTuple
+			fnnt = fieldnames(typ)
+			# go through all elements of stats.name
+			for ntname in fnnt
+				push!(push_args, :(stats.$name.$ntname))
+			end
+		# single values
+		else
+			push!(push_args, :(stats.$name))
+		end
+	end
+
+	push!(push_args, :(post...))
 
 	fn_body
 end

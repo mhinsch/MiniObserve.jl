@@ -69,6 +69,12 @@ print_header(stdout, Data)
 log_results(stdout, data)
 ```
 
+Alternatively we can store our data in a Dataframe:
+```Julia
+df = create_dataframe!(Data, DataFrame())
+add_to_dataframe!(df, data)
+
+
 ## User code
 
 Fundamentally `@observe`'s operation is very simple, which makes it very flexible, but also easy to break. Any code in the declaration block will be copied into the `observe` function verbatim. The only changes `@observe` applies are:
