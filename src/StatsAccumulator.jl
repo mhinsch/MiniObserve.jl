@@ -114,7 +114,7 @@ Arguments:
 * `count_below_min` - whether values lower than `min` are ignored or counted in the first bin [`false`]
 * `count_above_max` - whether values larger than `max` are ignored or counted in the last bin [`false`]
 """
-HistAcc(min::T = T(0), width::T = T(1), max::T = min; 
+HistAcc{T}(min::T = T(0), width::T = T(1), max::T = min; 
         count_below_min = false, count_above_max = false) where {T} = 
     HistAcc{T}(
                max <= min ? T[] : zeros(T, find_bin(min, width, max)), 
@@ -155,7 +155,7 @@ end
 
 SAB.results(acc::HistAcc) = (;bins = acc.bins)
 
-SAB.result_type(::Type{HistAcc}) = @NamedTuple{bins::Vector{Int}}
+SAB.result_type(::Type{HistAcc{T}}) where T = @NamedTuple{bins::Vector{Int}}
 
 
 # does not work with results/result_type, maybe rework as tuples?
