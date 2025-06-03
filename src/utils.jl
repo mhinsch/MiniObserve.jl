@@ -22,7 +22,7 @@ end
 
 
 "translate accumulator types into prefixes for the header (e.g. min, max, etc.)"
-stat_names(::Type{T}) where {T} = fieldnames(result_type(T))
+stat_names(::Type{T}) where {T} = fieldnames(StatsAccumulatorBase.result_type(T))
 
 
 # it would be much nicer to use a generated function for this, but

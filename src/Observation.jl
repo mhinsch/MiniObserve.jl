@@ -7,7 +7,7 @@ module Observation
 
 export print_header, @observe, log_results, create_dataframe!, add_to_dataframe!
 
-using ..StatsAccumulatorBase: add! 
+import ..StatsAccumulatorBase 
 
 using MacroTools
 using MacroTools: prewalk
@@ -19,12 +19,12 @@ include("file_io.jl")
 
 
 @inline function add_result_to_accs!(result, acc)
-	add!(acc, result)
+	StatsAccumulatorBase.add!(acc, result)
 	nothing
 end
 
 @inline function add_result_to_accs!(result, accs...)
-	foreach(a -> add!(a, result), accs)
+	foreach(a -> StatsAccumulatorBase.add!(a, result), accs)
 	nothing
 end
 
@@ -103,7 +103,7 @@ function process_expression!(ex, stats_type, stats_results, acc_temp_vars)
             # add accumulater to add call
             push!(ana_body_code.args, :($vname))
 			# add to named tuple argument of constructor call
-			push!(stats_results_code.args, :(MiniObserve.Observation.to_named_tuple(results($vname))))
+			push!(stats_results_code.args, :(MiniObserve.Observation.to_named_tuple(StatsAccumulatorBase.results($vname))))
 		end
     # everything else is copied verbatim
 	else
